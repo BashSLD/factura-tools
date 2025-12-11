@@ -1,0 +1,36 @@
+# Virtual environment folders
+venv/
+.venv/
+env/
+.env
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS system files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.vscode/
+.idea/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Generated logs and reports
+*.log
+_REPORTE_DE_FACTURAS_RENOMBRADAS.xlsx
+
+# Temporary directories and extracted data
+output/
+temp/
+tmp/
+_archivos_con_errores/
+errores/

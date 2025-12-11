@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "factura-tools"
+version = "1.4.0"
+description = "Herramienta para renombrar facturas e imagenes"
+authors = [
+  { name="BASH", email=None },
+]
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "flet",
+    "pandas",
+    "openpyxl",
+    "unidecode",
+    "PyMuPDF",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

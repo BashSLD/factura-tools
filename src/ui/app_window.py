@@ -1,18 +1,18 @@
 import flet as ft
 import getpass
 import time
-import renamePictures
-import extractZip
-import validationXmlPdf
-import renamePdfUuid
-import processFiles
-import moveFilesRenamed
 import os
 import subprocess
+from .. import renamePictures
+from .. import extractZip
+from .. import validationXmlPdf
+from .. import renamePdfUuid
+from .. import processFiles
+from .. import moveFilesRenamed
 
 usuario = getpass.getuser()
 
-def main(page: ft.Page):
+def main_window(page: ft.Page):
     page.title = "Herramienta para renombrar facturas e Imagenes"
     page.window.resizable = False
     page.window.width = 800
@@ -39,67 +39,72 @@ def main(page: ft.Page):
         width=200,
     )
 
-    selectPathImg = ft.FilePicker()
-    page.overlay.append(selectPathImg)
-
-    selectPathFacturas = ft.FilePicker(on_result=lambda e: process_files(e.path, "Renombrando..."))
-    page.overlay.append(selectPathFacturas)
-
-    selectPathReorder = ft.FilePicker(on_result=lambda e: organize_facturas(e.path))
-    page.overlay.append(selectPathReorder)
-
-    def mostrar_alerta(mensaje):
+    def mostrar_alerta(mensaje, titulo="Atención"):
         dlg = ft.AlertDialog(
-            title=ft.Text("Atención"),
+            title=ft.Text(titulo),
             content=ft.Text(mensaje),
             actions=[ft.TextButton("OK", on_click=lambda e: (setattr(dlg, "open", False), page.update()))]
         )
         page.open(dlg)
         page.update()
 
-    def runRenamePicture(e):
-        renamePictures.rename_pictures(page, selectPathImg)
-        if selectPathImg is None:
-            mostrar_alerta("Selecciona una carpeta antes de continuar.")
-            return
+    def update_progress(value):
+        progress_bar.value = value
+        page.update()
 
-    def rename_facturas(e):
-        if selectedSucursal.current.value is None:
-            mostrar_alerta("Selecciona una sucursal antes de continuar.")
-            return
-        selectPathFacturas.get_directory_path()
+    def result_handler(func, *args):
+        try:
+            return func(*args)
+        except Exception as e:
+            mostrar_alerta(str(e), "Error")
+            return None
 
-    def process_files(carpeta, mensaje_progreso):
+    def process_files(carpeta):
         if carpeta is None:
-            mostrar_alerta("Selecciona una carpeta antes de continuar.")
-            return
+            return # Se canceló el picker
+
         try:
             progress_bar.visible = True
             progress_bar.value = 0
-            lbl_progreso.value = mensaje_progreso
+            lbl_progreso.value = "Procesando..."
             lbl_progreso.visible = True
             page.update()
 
-            extractZip.process_zip_files(page, carpeta)
+            # Lógica de negocio
+            result_handler(extractZip.process_zip_files, carpeta)
             validationXmlPdf.moveFilesErrors(carpeta)
             renamePdfUuid.processPdfs(carpeta)
-            processFiles.processFiles(page, carpeta, selectedSucursal.current.value, progress_bar)
+            
+            # processFiles ahora retorna la ruta del excel si todo sale bien
+            excel_path = result_handler(
+                processFiles.process_files_logic, 
+                carpeta, 
+                selectedSucursal.current.value, 
+                update_progress
+            )
+
             lbl_progreso.value = "Terminado"
             page.update()
             time.sleep(1)
-            progress_bar.visible = False
-            lbl_progreso.visible = False
-            page.update()
+            
+            if excel_path:
+                mostrar_alerta("Renombrado de facturas completado. \n\nReporte en Excel generado.", "Éxito")
+                try:
+                    subprocess.Popen([excel_path], shell=True)
+                except Exception as ex:
+                    mostrar_alerta(f"No se pudo abrir el archivo Excel: {str(ex)}", "Error")
+
         except Exception as e:
-            mostrar_alerta(f"Error en el proceso: {str(e)}")
+             mostrar_alerta(f"Error general: {str(e)}", "Error")
+        finally:
             progress_bar.visible = False
             lbl_progreso.visible = False
             page.update()
 
-    def organize_facturas(ruta_origen): # Recibe ruta_origen directamente
+    def organize_facturas(ruta_origen):
         if ruta_origen is None:
-            mostrar_alerta("Selecciona la carpeta de origen antes de continuar.")
-            return
+             return 
+
         try:
             progress_bar.visible = True
             progress_bar.value = 0
@@ -107,37 +112,64 @@ def main(page: ft.Page):
             lbl_progreso.visible = True
             page.update()
 
-            moveFilesRenamed.moveFilesRenamed(page, ruta_origen, progress_bar)
+            result_handler(moveFilesRenamed.move_files_renamed, ruta_origen, update_progress)
+
             lbl_progreso.value = "Terminado"
             page.update()
             time.sleep(1)
-            progress_bar.visible = False
-            lbl_progreso.visible = False
-            page.update()
+            mostrar_alerta(f"Archivos organizados exitosamente en: {ruta_origen}", "Éxito")
+
         except Exception as e:
-            mostrar_alerta(f"Error en el proceso: {str(e)}")
+             mostrar_alerta(str(e), "Error")
+        finally:
             progress_bar.visible = False
             lbl_progreso.visible = False
             page.update()
 
+    def runRenamePicture(carpeta):
+         if carpeta is None:
+            return
+         
+         try:
+            renamed = result_handler(renamePictures.rename_pictures_in_dir, carpeta)
+            if renamed is not None:
+                 mostrar_alerta("Renombrado de imágenes completado.", "Éxito")
+         except Exception as e:
+             mostrar_alerta(str(e), "Error")
+
+    selectPathImg = ft.FilePicker(on_result=lambda e: runRenamePicture(e.path))
+    page.overlay.append(selectPathImg)
+
+    selectPathFacturas = ft.FilePicker(on_result=lambda e: process_files(e.path))
+    page.overlay.append(selectPathFacturas)
+
+    selectPathReorder = ft.FilePicker(on_result=lambda e: organize_facturas(e.path))
+    page.overlay.append(selectPathReorder)
+
+    def rename_facturas_click(e):
+        if selectedSucursal.current.value is None:
+            mostrar_alerta("Selecciona una sucursal antes de continuar.")
+            return
+        selectPathFacturas.get_directory_path()
+
     btn_img = ft.ElevatedButton(
         text="Renombrar Imágenes",
-        on_click=runRenamePicture,
+        on_click=lambda _: selectPathImg.get_directory_path(),
         width=200,
         height=50,
         style=ft.ButtonStyle(
-        color=ft.colors.with_opacity(0.8, ft.colors.TEAL_400),
+        color=ft.Colors.TEAL_400,
         text_style=ft.TextStyle(size=17, font_family="Roboto", weight=ft.FontWeight.BOLD),
         ),
     )
     
     btn_facturas = ft.ElevatedButton(
         text="Renombrar Facturas",
-        on_click=rename_facturas,
+        on_click=rename_facturas_click,
         width=200,
         height=50,
         style=ft.ButtonStyle(
-        color=ft.colors.with_opacity(0.8, ft.colors.TEAL_400),
+        color=ft.Colors.TEAL_400,
         text_style=ft.TextStyle(size=17, font_family="Roboto", weight=ft.FontWeight.BOLD),
         ),
     )
@@ -148,7 +180,7 @@ def main(page: ft.Page):
         width=200,
         height=50,
         style=ft.ButtonStyle(
-        color=ft.colors.with_opacity(0.8, ft.colors.TEAL_400),
+        color=ft.Colors.TEAL_400,
         text_style=ft.TextStyle(size=17, font_family="Roboto", weight=ft.FontWeight.BOLD),
         ),
     )
@@ -166,7 +198,4 @@ def main(page: ft.Page):
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
     )
-
     page.update()
-
-ft.app(target=main)

@@ -1,63 +1,58 @@
-# Factura Tools – Automatización de Procesamiento de Facturas
+# Factura Tools
 
-Aplicación desarrollada en Python con interfaz gráfica (Flet) para automatizar procesos relacionados con la gestión de facturas electrónicas (XML/PDF).
+Herramienta de escritorio desarrollada en Python con Flet para renombrar y organizar facturas XML/PDF.
 
-## 🚀 Funcionalidades principales
+## Estructura del Proyecto
 
-- 📦 Descompresión de archivos ZIP
-- 📄 Validación de archivos XML y PDF
-- 🧾 Renombrado automático usando UUID, fecha y emisor
-- 🗂️ Organización en carpetas por fecha y razón social
-- 📊 Generación automática de reportes en Excel
-- 🖼️ Renombrado masivo de imágenes
-- 🔄 Interfaz gráfica simple e intuitiva
-
-## 🛠️ Tecnologías utilizadas
-
-- Python 3
-- Flet (interfaz gráfica)
-- pandas, openpyxl (manejo de Excel)
-- PyMuPDF (lectura de PDFs)
-- unidecode, re, shutil, os, xml.etree
-
-## 📁 Estructura del proyecto
+El proyecto sigue una estructura moderna de paquetes Python:
 
 ```
 factura-tools/
-├── tools_1.4.0.py              # Interfaz principal
-├── renamePdfUuid.py
-├── renamePictures.py
-├── extractZip.py
-├── validationXmlPdf.py
-├── processFiles.py
-├── moveFilesRenamed.py
-├── requirements.txt
+├── src/
+│   ├── main.py            # Punto de entrada de la aplicación
+│   ├── ui/                # Lógica de Interfaz de Usuario (Flet)
+│   │   ├── __init__.py
+│   │   └── app_window.py  # Ventana principal
+│   ├── processFiles.py    # Lógica de procesamiento de facturas
+│   ├── renamePictures.py  # Lógica de renombardo de imágenes
+│   └── ...                # Otros módulos de lógica backend
+├── pyproject.toml         # Configuración del proyecto y dependencias
+├── requirements.txt       # Lista de dependencias (legacy)
 └── README.md
 ```
 
-## ▶️ Ejecución
+## Instalación
 
-1. Instala los requisitos:
-
-```bash
-pip install -r requirements.txt
-```
-
-2. Ejecuta la aplicación:
+Se recomienda instalar el proyecto en modo editable dentro de un entorno virtual:
 
 ```bash
-python tools_1.4.0.py
+# Crear entorno virtual (opcional pero recomendado)
+python -m venv .venv
+# Activar entorno (Windows)
+.venv\Scripts\activate
+
+# Instalar dependencias y el proyecto
+pip install -e .
 ```
 
-## 🧪 Requisitos
+## Ejecución
 
-- Python 3.9+
-- Windows 10 u 11 (por compatibilidad con Word, Excel y archivos del SAT)
+Para iniciar la aplicación, ejecuta el siguiente comando desde la raíz del proyecto:
 
-## 🛡️ Notas
+```bash
+python -m src.main
+```
 
-Este proyecto fue desarrollado como solución interna. No contiene información confidencial.
+## Funcionalidades
 
-## 📄 Licencia
+1.  **Renombrar Imágenes**: Renombra masivamente imágenes con timestamp para evitar duplicados.
+2.  **Renombrar Facturas**: Escanea una carpeta en busca de XML/PDF, extrae datos del XML (Fecha, Emisor, UUID) y renombra ambos archivos siguiendo un formato estandarizado. Genera un reporte en Excel.
+3.  **Organizar Facturas**: Mueve las facturas renombradas a una estructura de carpetas `Año/Mes/Emisor`.
 
-MIT
+## Tecnologías
+
+-   **Python 3.x**
+-   **Flet**: Framework de UI.
+-   **Pandas & OpenPyXL**: Generación de reportes Excel.
+-   **PyMuPDF**: Procesamiento de PDFs.
+-   **Unidecode**: Manejo de caracteres especiales.
